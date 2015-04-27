@@ -1,0 +1,25 @@
+from Tkinter import *
+
+class NextRoundLB(Frame):
+    def __init__(self, parent):
+        Frame.__init__(self, parent)
+
+        self.parent = parent
+
+        self.method_lf = LabelFrame(self, text="Method")
+        self.method_lf.pack(side=LEFT)
+        self.starter_method_button = Button(self.method_lf, text="Starter")
+        self.starter_method_button.pack(side=TOP)
+        self.overall_method_button = Button(self.method_lf, text="Overall")
+        self.overall_method_button.pack(side=TOP)
+
+        self.next_rounders_frame = LabelFrame(self, text="Next round prospects")
+        self.next_rounders_frame.pack(side=LEFT)
+        self.next_rounders_lb = Listbox(self.next_rounders_frame, height=4)
+        self.next_rounders_lb.pack(side=RIGHT)
+
+    def delete(self, start, finish):
+        self.next_rounders_lb.delete(0, END)
+
+    def insert(self, index, text):
+        self.next_rounders_lb.insert(index, text)

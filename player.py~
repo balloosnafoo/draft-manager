@@ -1,0 +1,7 @@
+from Tkinter import *
+
+class PlayerFrame(Frame):
+    def __init__(self, parent, player):
+        Frame.__init__(self, parent)
+
+        self.parent = parent

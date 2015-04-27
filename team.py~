@@ -1,0 +1,39 @@
+from Tkinter import *
+
+class TeamFrame(Frame):
+    def __init__(self, parent):
+        Frame.__init__(self, parent)
+        self.parent = parent
+
+        self.top_container = Frame(self)
+        self.top_container.pack(side=TOP)
+        self.left_container  = Frame(self)
+        self.left_container.pack(side=LEFT)
+        self.right_container = Frame(self)
+        self.right_container.pack(side=LEFT)
+
+        self.team_label = Label(self.top_container, text="Team Name")
+        self.team_label.pack(side=TOP)
+
+        positions = ["QB", "WR1", "WR2", "RB1", "RB2", "FLEX", "TE", "K", "D/ST"]
+        for i in range(6):
+            positions.append("BN")
+
+        self.right_labels = []
+        for position in positions:
+            ll = Label(self.left_container,  text=position, font=("Sans", 10))
+            rl = Label(self.right_container, text="none", font=("Sans", 10))
+            self.right_labels.append(rl)
+
+            ll.pack(side=TOP)
+            rl.pack(side=TOP)
+
+def main():
+    root = Tk()
+    team = TeamFrame(root)
+    team.pack(side=LEFT)
+    root.mainloop()
+
+if __name__ == '__main__':
+    main()
+
