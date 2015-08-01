@@ -94,17 +94,18 @@ class Team(object):
         export = []
         players = self.get_all_players()
         for player in players:
-            name     = player.get_name()
-            position = player.get_position()
-            age      = player.get_age()
-            team     = player.get_team()
-            subj_val = player.get_subjective_value()
+            name      = player.get_name()
+            position  = player.get_position()
+            age       = player.get_age()
+            team      = player.get_team()
+            subj_val  = player.get_subjective_value()
+            picked_at = player.get_picked_at()
             if position == "K":
                 age = 0
             elif position == "DST":
                 age = 0
                 team = None
-            export.append([name, position, age, team, subj_val])
+            export.append([name, position, age, team, subj_val, picked_at])
         return export
 
     # Getters and setters

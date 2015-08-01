@@ -4,3 +4,9 @@
 [ ] - Implement Cancel Last Pick function to handle misclicks.
 [ ] - Refactor the draftButtonClick handler
 [ ] - Record the Boolean showing whether a player would have been available before a manager's next pick according to rankings.
+[ ] - Figure out how to make window intended size
+
+
+IDEAS:
+
+ - Use an array to easily configure variable rosters e.g. [1, 2, 2, 1, 1, 1, 1, 6] designates spots for [qb, wr, rb, fl, te, k, dst, bn]

@@ -1,0 +1,163 @@
+import sqlite3 as lite
+from operator import attrgetter
+
+def import_draft_results(path):
+    teams = []
+
+    con = lite.connect(path)
+    c = con.cursor()
+    for row in c.execute("SELECT * FROM Teams;"):
+        teams.append(Team(row[1]))
+
+    for row in c.execute("SELECT * FROM Players;"):
+        teams[row[0]].new_player(row)
+
+    con.close()
+
+    return teams
+
+class League(object):
+    def __init__(self):
+        self.teams = []
+        self.players = []
+
+    def new_team(self, team):
+        self.teams.append(team)
+
+    def add_player(self, player):
+        self.players.append(player)
+    
+class Team(object):
+    def __init__(self, manager):
+        self.manager = manager
+        self.players = []
+
+    def new_player(self, player_data):
+        if player_data[2] not in ["DST", "K"]:
+            self.players.append(Player(player_data))
+
+    def net_subj_val(self, team_filter=None, pos_filter=None):
+        sv = 0
+        for player in self.players:
+            if team_filter:
+                if player.team == team_filter:
+                    sv += player.subj_val
+            elif pos_filter:
+                if player.position == pos_filter:
+                    sv += player.subj_val
+            else:
+                sv += player.subj_val
+        return sv
+
+    def highest_subj_val(self):
+        return sorted(self.players, key=attrgetter('subj_val'))[0:4]
+
+    def lowest_subj_val(self):
+        return sorted(self.players, key=attrgetter('subj_val'), reverse=True)[0:4]
+
+    def average_subj_val(self):
+        total = 0
+        items = len(self.players)
+        for player in self.players:
+            total += player.subj_val
+        return total / (items * 1.0)
+
+    def find_most_valued_team(self):
+        teams = []
+        for player in self.players:
+            if player.team not in teams:
+                teams.append(player.team)
+        highest_val = -50
+        highest_team= None
+        for team in teams:
+            team_val = 0
+            players_on_team = 0
+            for player in self.players:
+                if player.team == team:
+                    team_val += player.subj_val
+                    players_on_team += 1
+            if team_val > highest_val and players_on_team > 1:
+                highest_team = team
+                highest_val  = team_val
+        return highest_team, highest_val
+
+    def most_picked_team(self):
+        teams = {}
+        for player in self.players:
+            if player.team not in teams.keys():
+                teams[player.team] =  1
+            else:
+                teams[player.team] += 1
+        high_val = 2
+        high_teams = []
+        for key in teams.keys():
+            if teams[key] > high_val:
+                high_teams = [key]
+            elif teams[key] == high_val:
+                high_teams.append(key)
+        return high_teams
+        
+
+class Player(object):
+    def __init__(self, player_data):
+        owner, name, position, age, nfl_team, subj_val, picked_at = player_data
+        self.owner = owner
+        self.name = name
+        self.position = position
+        self.age = age
+        self.team = nfl_team
+        self.subj_val = subj_val
+        self.picked_at = picked_at
+
+def get_all_players(teams):
+    players = []
+    for team in teams:
+        for player in team.players:
+            players.append(player)
+    return sorted(players, key=attrgetter('picked_at'))
+
+def get_league_high_val_team(players):
+    teams = []
+    for player in players:
+        if player.team not in teams:
+            teams.append(player.team)
+    highest_val = -50
+    highest_team= None
+    for team in teams:
+        team_val = 0
+        players_on_team = 0
+        for player in players:
+            if player.team == team:
+                team_val += player.subj_val
+                players_on_team += 1
+        if team_val > highest_val and players_on_team > 1:
+            highest_team = team
+            highest_val  = team_val
+    return highest_team, highest_val
+
+if __name__ == '__main__':
+    teams = import_draft_results('../data/results_sample.db')
+    for team in teams:
+        print "Team:", team.manager
+        print "\tTop 4 Steals:"
+        for player in team.highest_subj_val():
+            print "\t\t%s, %d" % (player.name, player.subj_val)
+        print "\tTop 4 Reaches:"
+        for player in team.lowest_subj_val():
+            print "\t\t%s, %d" % (player.name, player.subj_val)
+        print "\tAverage SV:", team.average_subj_val()
+        high_team, high_team_val = team.find_most_valued_team()
+        print "\tMost Valued Team (by sv): %s (%d)" % (high_team, high_team_val)      
+        for player in team.players:
+            if player.team == high_team:
+                print "\t\t%s (%d)" % (player.name, player.subj_val)
+        high_teams = team.most_picked_team()  
+        print "\tMost Valued Teams (by picks):"
+        for h_team in high_teams:
+            print "\t\t"+h_team+":"
+            for player in team.players:
+                if player.team == h_team:
+                    print "\t\t\t%s (%d)" % (player.name, player.subj_val)
+        print "-------------------------------------------------------------"
+    lw_high_team, lw_high_val = get_league_high_val_team(get_all_players(teams))
+    print "\tLeague's Most Valued Team:", lw_high_team

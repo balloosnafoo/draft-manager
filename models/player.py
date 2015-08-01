@@ -37,6 +37,8 @@ class Player(object):
         return self.picked_at
 
     def get_subjective_value(self):
+        if self.position in ["DST", "K"]:
+            return -999 
         return int(self.rank) - self.picked_at 
 
     def set_picked_at(self, number):

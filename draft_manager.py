@@ -9,14 +9,16 @@ from gui.helpers import generate_fake_players, filter_fakes_by_position, filter_
 
 from models.draft import *
 from models.player import Player
+from models.helpers import export_projected_available
 
 # Configuration
 OFFENSIVE_POSITIONS = ["QB", "WR", "RB", "TE"]
-TEAMS = ["Matt", "Mike", "Kevin", "Dave", "Will", "Francos", "Greg", "Evan", "Jason", "Some Guy"]
+TEAMS = ["Kevin", "Mike","Matt" , "Dave", "Will", "Francos", "Greg", "Evan", "Jason", "Some Guy"]
 NUM_TEAMS = len(TEAMS)
 random.shuffle(TEAMS) # Comment out when draft order is set
 SNAKE_DRAFT = True
 IS_USER = "Matt"
+TRACK_PROJECTIONS = False
 
 
 class Application(Frame):
@@ -25,12 +27,17 @@ class Application(Frame):
         self.parent = parent
         self.parent.title("Draft Manager")
         
-        self.pack(fill=BOTH, expand=1)
+        self.pack()
 
-        # Set application window size to full height half width
-        screen_width = self.parent.winfo_screenwidth()
-        screen_height = self.parent.winfo_screenheight()
-        self.parent.configure(width=screen_width, height=screen_height)
+        # FOR RESEARCH CAN BE COMMENTED OUT FOR REAL DRAFT
+        self.proj_nr_results = []
+        self.proj_next_rounders = {}
+
+        # Set root window size
+        w = self.winfo_screenwidth() / 2 - 2
+        h = self.winfo_screenheight()
+        self.parent.geometry('%dx%d+%d+%d' % (w, h, 0, 0))
+        self.parent.update()
 
         # Top container holds top 20 lists
         self.top_container  = Frame(self)
@@ -50,6 +57,12 @@ class Application(Frame):
 
         self.mid2_right = Frame(self.mid_container2)
         self.mid2_right.pack(side=RIGHT)
+
+        # canvas that holds the picks ticker, no need for frame
+        # as it is a single object and spans entire width
+        # ww = self.winfo_screenwidth() / 2
+        # self.pick_ticker = Canvas(self, width=ww, height=12)
+        # self.pick_ticker.pack(side=TOP)
 
         # Bottom container holds team rosters
         self.bottom_container = Frame(self)
@@ -113,6 +126,10 @@ class Application(Frame):
             widget.pack(side=LEFT)
 
     def init_UI(self):
+
+        """Creates the entry field, draft button, and buttons that allow 
+        user to place increased importance on 'best rank'. 
+        """
 
         self.search_entry = Entry(self.mid_container)
         self.search_entry.pack(side=LEFT)
@@ -215,6 +232,9 @@ class Application(Frame):
                           self.draft.current_pick]].highlight_team()
 
         self.update_next_rounders()
+        # FOR RESEARCH
+        if TRACK_PROJECTIONS:
+            self.track_next_rounder_availability_alt()
 
     def update_next_rounders(self):
         team = self.draft.teams[self.draft.order[self.draft.get_current_pick()]]
@@ -225,6 +245,74 @@ class Application(Frame):
                 next_player, cushion = self.draft.get_next(position, offset)
                 string = "%s: %s (%s)" % (position, next_player, str(cushion))
                 self.next_round_lb.insert(END, string)
+
+    def track_next_rounder_availability(self):
+        """
+        This is being used to gather data, in order to make reasonable estimates
+        about how probable players are to make it back to the user on his next
+        turn.
+        """
+        team = self.draft.teams[self.draft.order[self.draft.get_current_pick()]]
+
+        if team not in self.proj_next_rounders.keys():
+            self.proj_next_rounders[team] = {}
+
+        results = []
+        for nr in self.proj_next_rounders[team].keys():
+            current_round = self.proj_next_rounders[team][nr][0]
+            offset        = self.proj_next_rounders[team][nr][1]
+            cushion       = self.proj_next_rounders[team][nr][2]
+            if nr in self.draft.draft_pool.players:
+                results.append([current_round, offset, cushion, True])
+                print nr.get_name(), "is still available"
+            else:
+                results.append([current_round, offset, cushion, False])
+                print nr.get_name(), "is no longer available"
+        if results:
+            print "Results:", results
+            self.proj_nr_results.append(results)
+
+        self.proj_next_rounders[team] = {}
+        for position in OFFENSIVE_POSITIONS:
+            current_round = self.draft.current_round
+            offset = self.draft.get_num_picks_before_next()
+            next_player, cushion = self.draft.get_next_as_object(position, offset)
+            self.proj_next_rounders[team][next_player] = [current_round, offset, cushion]
+
+    def track_next_rounder_availability_alt(self):
+        """
+        This is being used to gather data, in order to make reasonable estimates
+        about how probable players are to make it back to the user on his next
+        turn. This is a reformulation based on an idea about gathering more data
+        faster.
+        """
+        team = self.draft.teams[self.draft.order[self.draft.get_current_pick()]]
+
+        if team not in self.proj_next_rounders.keys():
+            self.proj_next_rounders[team] = {}
+
+        results = []
+        for nr in self.proj_next_rounders[team].keys():
+            current_round = self.proj_next_rounders[team][nr][0]
+            cushion       = self.proj_next_rounders[team][nr][1]
+            offset        = self.proj_next_rounders[team][nr][2]
+            if nr in self.draft.draft_pool.players:
+                results.append([current_round, cushion, offset, True])
+                print nr.get_name(), "is still available"
+            else:
+                results.append([current_round, cushion, offset, False])
+                print nr.get_name(), "is no longer available"
+        if results:
+            print "Results:", results
+            for result in results:
+                self.proj_nr_results.append(tuple(result))
+
+        self.proj_next_rounders[team] = {}
+        for i in range(30):
+            current_round = self.draft.current_round
+            player = self.draft.draft_pool.players[i]
+            offset = self.draft.get_num_picks_before_next()
+            self.proj_next_rounders[team][player] = [current_round, i, offset]
 
     def insert_comparison(self, event):
         if event.widget == self.player1_button:
@@ -243,5 +331,7 @@ root = Tk()
 app  = Application(root)
 root.mainloop()
 app.draft.export_teams()
+if TRACK_PROJECTIONS:
+    export_projected_available(app.proj_nr_results)
 
 

@@ -28,6 +28,9 @@ def get_player_age(name, position):
     player_nfl = get_player_nfl_object(name, position)
     if player_nfl == "N/A":
         return 0
+    elif player_nfl == None:
+        print "Caution: %s was registered as rookie, if this is a name error, please fix" % name
+        return -1
     # print "get_player_age:", player_nfl # Helps find differences in names and nflgame and ffp
     birthdate = player_nfl.birthdate.split("/")
     birth_month = int(birthdate[0])
@@ -62,11 +65,11 @@ def get_player_nfl_object(name, position):
         return "N/A"
     matches = nfl.find(name)
     if len(matches) == 1:
-        return matches[0]
+      return matches[0]
     else:
-        for p in matches:
-            if position == p.position:
-                return p
+      for p in matches:
+          if position == p.position:
+              return p
 
 def add_distance_to_next(players):
     depth_charts = {}
@@ -134,13 +137,13 @@ def create_player_table():
         cur = con.cursor()
         # Comment out following line if keeping track of all drafts
         cur.execute("DROP TABLE IF EXISTS Players")
-        cur.execute("CREATE TABLE IF NOT EXISTS Players(TeamId INT, Name TEXT, Position TEXT, Age INT, Team TEXT, SubjVal INT)")
+        cur.execute("CREATE TABLE IF NOT EXISTS Players(TeamId INT, Name TEXT, Position TEXT, Age INT, Team TEXT, SubjVal INT, PickedAt INT)")
 
 def export_players(data):
     con = lite.connect('data/results.db')
     with con:
         cur = con.cursor()
-        cur.executemany("INSERT INTO Players VALUES(?, ?, ?, ?, ?, ?)", data)
+        cur.executemany("INSERT INTO Players VALUES(?, ?, ?, ?, ?, ?, ?)", data)
 
 def export_draft(picks_made, picks_possible):
     """
@@ -153,6 +156,17 @@ def export_draft(picks_made, picks_possible):
                     "                     Date TEXT, PicksMade INT, PicksPossible INT)")
         date = datetime.date.today()
         cur.execute("INSERT INTO Drafts VALUES(?, ?, ?)", (str(date), 0, 0))
+
+def export_projected_available(data):
+    data = tuple(data)
+
+    con = lite.connect('data/projection_data.db')
+    with con:
+        cur = con.cursor()
+        # Uncomment if db needs to be reset.
+        # cur.execute("DROP TABLE IF EXISTS ProjResults")
+        cur.execute("CREATE TABLE IF NOT EXISTS ProjResults(Round INT, Cushion INT, Offset INT, Available BOOLEAN)")
+        cur.executemany("INSERT INTO ProjResults VALUES(?, ?, ?, ?)", data)
 
 
 
